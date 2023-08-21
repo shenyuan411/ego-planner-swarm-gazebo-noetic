@@ -512,14 +512,14 @@ namespace ego_planner
     }
 
     /*** a star search ***/
-    vector<vector<Eigen::Vector3d>> a_star_pathes;
+    vector<vector<Eigen::Vector3d>> a_star_pathes;  //定义容器向量存放路径点
     for (size_t i = 0; i < segment_ids.size(); ++i)
     {
       //cout << "in=" << in.transpose() << " out=" << out.transpose() << endl;
       Eigen::Vector3d in(init_points.col(segment_ids[i].first)), out(init_points.col(segment_ids[i].second));
       if (a_star_->AstarSearch(/*(in-out).norm()/10+0.05*/ 0.1, in, out))
       {
-        a_star_pathes.push_back(a_star_->getPath());
+        a_star_pathes.push_back(a_star_->getPath());  //返回path
       }
       else
       {
@@ -1422,7 +1422,7 @@ namespace ego_planner
 
     setControlPoints(init_points);
     setBsplineInterval(ts);
-
+    /*---------------Three------------------*/
     bool flag_success = refine_optimize();
 
     optimal_points = cps_.points;
@@ -1622,6 +1622,7 @@ namespace ego_planner
       lbfgs_params.max_iterations = 200;
       lbfgs_params.g_epsilon = 0.001;
 
+      /*---------------For------------------*/
       int result = lbfgs::lbfgs_optimize(variable_num_, q, &final_cost, BsplineOptimizer::costFunctionRefine, NULL, NULL, this, &lbfgs_params);
       if (result == lbfgs::LBFGS_CONVERGENCE ||
           result == lbfgs::LBFGSERR_MAXIMUMITERATION ||
@@ -1688,9 +1689,9 @@ namespace ego_planner
     Eigen::MatrixXd g_swarm = Eigen::MatrixXd::Zero(3, cps_.size);
     Eigen::MatrixXd g_terminal = Eigen::MatrixXd::Zero(3, cps_.size);
 
-    calcSmoothnessCost(cps_.points, f_smoothness, g_smoothness);
-    calcDistanceCostRebound(cps_.points, f_distance, g_distance, iter_num_, f_smoothness);
-    calcFeasibilityCost(cps_.points, f_feasibility, g_feasibility);
+    calcSmoothnessCost(cps_.points, f_smoothness, g_smoothness);// 平滑项
+    calcDistanceCostRebound(cps_.points, f_distance, g_distance, iter_num_, f_smoothness);// 距离 碰撞惩罚
+    calcFeasibilityCost(cps_.points, f_feasibility, g_feasibility);// 动力学惩罚项
     // calcMovingObjCost(cps_.points, f_mov_objs, g_mov_objs);
     calcSwarmCost(cps_.points, f_swarm, g_swarm);
     calcTerminalCost(cps_.points, f_terminal, g_terminal);
@@ -1719,7 +1720,7 @@ namespace ego_planner
     //time_satrt = ros::Time::now();
 
     calcSmoothnessCost(cps_.points, f_smoothness, g_smoothness);
-    calcFitnessCost(cps_.points, f_fitness, g_fitness);
+    calcFitnessCost(cps_.points, f_fitness, g_fitness);// 贴合性，保证尽量重合
     calcFeasibilityCost(cps_.points, f_feasibility, g_feasibility);
 
     /* ---------- convert to solver format...---------- */

@@ -30,6 +30,7 @@ namespace ego_planner
 
   private:
     /* ---------- flag ---------- */
+    //定义枚举类型，序号从0开始
     enum FSM_EXEC_STATE
     {
       INIT,

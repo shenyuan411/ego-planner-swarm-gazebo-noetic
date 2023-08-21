@@ -36,7 +36,7 @@ namespace ego_planner
     void setGlobalTraj(const PolynomialTraj &traj, const ros::Time &time)
     {
       global_traj_ = traj;
-      global_traj_.init();
+      global_traj_.init();  //计算总时间
       global_duration_ = global_traj_.getTimeSum();
       global_start_time_ = time;
 

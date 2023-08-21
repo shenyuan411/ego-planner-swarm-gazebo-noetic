@@ -44,7 +44,7 @@ namespace ego_planner
 
   // !SECTION
 
-  // SECTION rebond replanning
+  // SECTION rebond replanning重规划
 
   bool EGOPlannerManager::reboundReplan(Eigen::Vector3d start_pt, Eigen::Vector3d start_vel,
                                         Eigen::Vector3d start_acc, Eigen::Vector3d local_target_pt,
@@ -56,6 +56,7 @@ namespace ego_planner
     // cout << "start: " << start_pt.transpose() << ", " << start_vel.transpose() << "\ngoal:" << local_target_pt.transpose() << ", " << local_target_vel.transpose()
     //      << endl;
 
+    /*如果当前位置和局部目标位置欧式距离相差小于0.2，判定接近目标，返回false，不进行重规划*/
     if ((start_pt - local_target_pt).norm() < 0.2)
     {
       cout << "Close to goal" << endl;
@@ -63,12 +64,15 @@ namespace ego_planner
       return false;
     }
 
+    cout << "start reboudReplan!" << endl;
+
     bspline_optimizer_->setLocalTargetPt(local_target_pt);
 
     ros::Time t_start = ros::Time::now();
     ros::Duration t_init, t_opt, t_refine;
 
     /*** STEP 1: INIT ***/
+    // 将minmumsnap的多项式轨迹转换成b样条曲线 移出障碍物
     double ts = (start_pt - local_target_pt).norm() > 0.1 ? pp_.ctrl_pt_dist / pp_.max_vel_ * 1.5 : pp_.ctrl_pt_dist / pp_.max_vel_ * 5; // pp_.ctrl_pt_dist / pp_.max_vel_ is too tense, and will surely exceed the acc/vel limits
     vector<Eigen::Vector3d> point_set, start_end_derivatives;
     static bool flag_first_call = true, flag_force_polynomial = false;
@@ -216,9 +220,13 @@ namespace ego_planner
     } while (flag_regenerate);
 
     Eigen::MatrixXd ctrl_pts, ctrl_pts_temp;
-    UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts);
+    /*-------------------通过B样条 b-spline参数优化得到控制点--------------------*/
+    UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts); 
 
     vector<std::pair<int, int>> segments;
+
+    /* 贼长，通过A star 搜索来使轨迹无碰撞对应Fast_Planner的ESDF提供的障碍物距离作用，和check_collision_and_rebound()很像*/
+    /*--------------贼重要---------------*/
     segments = bspline_optimizer_->initControlPoints(ctrl_pts, true);
 
     t_init = ros::Time::now() - t_start;
@@ -228,6 +236,7 @@ namespace ego_planner
     bool flag_step_1_success = false;
     vector<vector<Eigen::Vector3d>> vis_trajs;
 
+    /* use_distinctive_trajs=true */
     if (pp_.use_distinctive_trajs)
     {
       // cout << "enter" << endl;
@@ -238,6 +247,7 @@ namespace ego_planner
       double final_cost, min_cost = 999999.0;
       for (int i = trajs.size() - 1; i >= 0; i--)
       {
+        /*----------------这块贼重要，对应B样条优化那一讲------------------*/
         if (bspline_optimizer_->BsplineOptimizeTrajRebound(ctrl_pts_temp, final_cost, trajs[i], ts))
         {
 
@@ -270,6 +280,7 @@ namespace ego_planner
     }
     else
     {
+      
       flag_step_1_success = bspline_optimizer_->BsplineOptimizeTrajRebound(ctrl_pts, ts);
       t_opt = ros::Time::now() - t_start;
       //static int vis_id = 0;
@@ -290,6 +301,7 @@ namespace ego_planner
     pos.setPhysicalLimits(pp_.max_vel_, pp_.max_acc_, pp_.feasibility_tolerance_);
 
     /*** STEP 3: REFINE(RE-ALLOCATE TIME) IF NECESSARY ***/
+    // 时间重分配
     // Note: Only adjust time in single drone mode. But we still allow drone_0 to adjust its time profile.
     if (pp_.drone_id <= 0)
     {
@@ -301,7 +313,8 @@ namespace ego_planner
         cout << "Need to reallocate time." << endl;
 
         Eigen::MatrixXd optimal_control_points;
-        flag_step_2_success = refineTrajAlgo(pos, start_end_derivatives, ratio, ts, optimal_control_points);
+        /*-------------时间重分配 对应我们时间重分配第五讲-------------------*/
+        flag_step_2_success = refineTrajAlgo(pos, start_end_derivatives, ratio, ts, optimal_control_points);//时间重分配
         if (flag_step_2_success)
           pos = UniformBspline(optimal_control_points, 3, ts);
       }
@@ -460,64 +473,80 @@ namespace ego_planner
 
     // generate global reference trajectory
 
-    vector<Eigen::Vector3d> points;
+    vector<Eigen::Vector3d> points;//定义容器用来存放始末位置点
     points.push_back(start_pos);
     points.push_back(end_pos);
 
     // insert intermediate points if too far
     vector<Eigen::Vector3d> inter_points;
     const double dist_thresh = 4.0;
-
+    cout << "start the for loop!" << endl;
     for (size_t i = 0; i < points.size() - 1; ++i)
     {
-      inter_points.push_back(points.at(i));
-      double dist = (points.at(i + 1) - points.at(i)).norm();
+      inter_points.push_back(points.at(i)); //vector::at(i)传会容器索引值的数据，超过索引界限输出out of range
+      cout << "vector::at(i)????" << endl;
+      double dist = (points.at(i + 1) - points.at(i)).norm(); // 始末xyz位置差平方和开根号，也就是求二范数
 
-      if (dist > dist_thresh)
+      if (dist > dist_thresh) //判断是否始末两点欧式距离大于4.0
       {
-        int id_num = floor(dist / dist_thresh) + 1;
+        cout << "dist > dist_thresh! get into the if" << endl;
+        int id_num = floor(dist / dist_thresh) + 1; //floor(x)为取整函数，返回小于等于x的整数
 
         for (int j = 1; j < id_num; ++j)
         {
+          cout << "get into the for loop2!" << endl;
+          /*----这里面参考了线性贝塞尔曲线 Bezier Curve  B(t)=P0+(P1-P0)*t=(1-t)*P0+t*P1 ，t 取[0,1]*/
           Eigen::Vector3d inter_pt =
               points.at(i) * (1.0 - double(j) / id_num) + points.at(i + 1) * double(j) / id_num;
-          inter_points.push_back(inter_pt);
+          inter_points.push_back(inter_pt); //插点完成
+          cout << "insert points success!" << endl;
         }
       }
     }
 
-    inter_points.push_back(points.back());
+    inter_points.push_back(points.back());  //将终点位置传入新的waypoint点中
 
     // write position matrix
-    int pt_num = inter_points.size();
-    Eigen::MatrixXd pos(3, pt_num);
+    int pt_num = inter_points.size(); //共有多少个waypoints
+    Eigen::MatrixXd pos(3, pt_num); //定义一个3xpt_num的矩阵用来存放位置信息
     for (int i = 0; i < pt_num; ++i)
-      pos.col(i) = inter_points[i];
+      pos.col(i) = inter_points[i]; //赋值提取
 
     Eigen::Vector3d zero(0, 0, 0);
-    Eigen::VectorXd time(pt_num - 1);
+    Eigen::VectorXd time(pt_num - 1); //定义每一段的时间t
     for (int i = 0; i < pt_num - 1; ++i)
     {
-      time(i) = (pos.col(i + 1) - pos.col(i)).norm() / (pp_.max_vel_);
+      time(i) = (pos.col(i + 1) - pos.col(i)).norm() / (pp_.max_vel_);  //每一段时间点等于两点间欧式距离除以之前设置好的最大速度
+      std::cout << "time(" << i << "): " << time(i) << "=" << (pos.col(i+1) - pos.col(i)).norm() << "/" << pp_.max_vel_ <<  std::endl;
     }
 
     time(0) *= 2.0;
     time(time.rows() - 1) *= 2.0;
+    cout << "for loop end!" << endl;
 
+    /*--------定义多项式轨迹，通过minimum  snap 求解得到光滑的轨迹----------*/
     PolynomialTraj gl_traj;
+    cout << "pos.cols()" << pos.cols() << endl;
+    /* waypoints>2 */
     if (pos.cols() >= 3)
       gl_traj = PolynomialTraj::minSnapTraj(pos, start_vel, end_vel, start_acc, end_acc, time);
+    /* waypoints=2,只有初始点和终点 */
     else if (pos.cols() == 2)
       gl_traj = PolynomialTraj::one_segment_traj_gen(start_pos, start_vel, start_acc, end_pos, end_vel, end_acc, time(0));
     else
       return false;
 
+
+    cout << "minSnap completed!" << endl;
     auto time_now = ros::Time::now();
+
+    /*--------传入全局轨迹和总时间------------*/
     global_data_.setGlobalTraj(gl_traj, time_now);
 
     return true;
   }
 
+  /*---------------One-------------------*/
   bool EGOPlannerManager::refineTrajAlgo(UniformBspline &traj, vector<Eigen::Vector3d> &start_end_derivative, double ratio, double &ts, Eigen::MatrixXd &optimal_control_points)
   {
     double t_inc;
@@ -525,6 +554,7 @@ namespace ego_planner
     Eigen::MatrixXd ctrl_pts; // = traj.getControlPoint()
 
     // std::cout << "ratio: " << ratio << std::endl;
+     /*---------------得到控制点------------------*/
     reparamBspline(traj, start_end_derivative, ratio, ctrl_pts, ts, t_inc);
 
     traj = UniformBspline(ctrl_pts, 3, ts);
@@ -533,7 +563,7 @@ namespace ego_planner
     bspline_optimizer_->ref_pts_.clear();
     for (double t = 0; t < traj.getTimeSum() + 1e-4; t += t_step)
       bspline_optimizer_->ref_pts_.push_back(traj.evaluateDeBoorT(t));
-
+     /*---------------Two：B样条轨迹重优化------------------*/
     bool success = bspline_optimizer_->BsplineOptimizeTrajRefine(ctrl_pts, ts, optimal_control_points);
 
     return success;

@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
   EGOReplanFSM rebo_replan;
 
-  rebo_replan.init(nh);
+  rebo_replan.init(nh);//从这里开始初始化
 
   // ros::Duration(1.0).sleep();
   ros::spin();

@@ -14,7 +14,7 @@ private:
   vector<vector<double>> cys; // coefficient of y of each segment
   vector<vector<double>> czs; // coefficient of z of each segment
 
-  double time_sum;
+  double time_sum;  //多项式轨迹段数时间总和
   int num_seg;
 
   /* evaluation */
@@ -29,17 +29,20 @@ public:
   {
   }
 
+  /*  清除内存*/
   void reset()
   {
     times.clear(), cxs.clear(), cys.clear(), czs.clear();
     time_sum = 0.0, num_seg = 0;
   }
 
+
   void addSegment(vector<double> cx, vector<double> cy, vector<double> cz, double t)
   {
     cxs.push_back(cx), cys.push_back(cy), czs.push_back(cz), times.push_back(t);
   }
 
+ /* 初始化，求得总时间*/
   void init()
   {
     num_seg = times.size();
@@ -55,6 +58,7 @@ public:
     return times;
   }
 
+/* ------获得每一段多项式轨迹系数---------*/
   vector<vector<double>> getCoef(int axis)
   {
     switch (axis)
@@ -75,7 +79,7 @@ public:
 
   Eigen::Vector3d evaluate(double t)
   {
-    /* detetrmine segment num */
+    /* determine segment num */
     int idx = 0;
     while (times[idx] + 1e-4 < t)
     {

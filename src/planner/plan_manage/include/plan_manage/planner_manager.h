@@ -49,7 +49,7 @@ namespace ego_planner
 
     PlanParameters pp_;
     LocalTrajData local_data_;
-    GlobalTrajData global_data_;
+    GlobalTrajData global_data_;//在plan_container.hpp中定义
     GridMap::Ptr grid_map_;
     fast_planner::ObjPredictor::Ptr obj_predictor_;    
     SwarmTrajData swarm_trajs_buf_;

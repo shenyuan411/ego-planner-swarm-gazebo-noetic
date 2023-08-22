@@ -43,8 +43,8 @@ namespace ego_planner
     };
     enum TARGET_TYPE
     {
-      MANUAL_TARGET = 1,
-      PRESET_TARGET = 2,
+      MANUAL_TARGET = 1,// rviz指点
+      PRESET_TARGET = 2,// 预先设定点位
       REFENCE_PATH = 3
     };
 

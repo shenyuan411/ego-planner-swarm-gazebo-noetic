@@ -484,17 +484,17 @@ namespace ego_planner
     for (size_t i = 0; i < points.size() - 1; ++i)
     {
       inter_points.push_back(points.at(i)); //vector::at(i)传会容器索引值的数据，超过索引界限输出out of range
-      cout << "vector::at(i)????" << endl;
+      // cout << "vector::at(i)????" << endl;
       double dist = (points.at(i + 1) - points.at(i)).norm(); // 始末xyz位置差平方和开根号，也就是求二范数
 
       if (dist > dist_thresh) //判断是否始末两点欧式距离大于4.0
       {
-        cout << "dist > dist_thresh! get into the if" << endl;
+        cout << "dist: " << dist << " > dist_thresh! get into the if to insert point" << endl;
         int id_num = floor(dist / dist_thresh) + 1; //floor(x)为取整函数，返回小于等于x的整数
 
         for (int j = 1; j < id_num; ++j)
         {
-          cout << "get into the for loop2!" << endl;
+          // cout << "get into the for loop2!" << endl;
           /*----这里面参考了线性贝塞尔曲线 Bezier Curve  B(t)=P0+(P1-P0)*t=(1-t)*P0+t*P1 ，t 取[0,1]*/
           Eigen::Vector3d inter_pt =
               points.at(i) * (1.0 - double(j) / id_num) + points.at(i + 1) * double(j) / id_num;
@@ -522,11 +522,11 @@ namespace ego_planner
 
     time(0) *= 2.0;
     time(time.rows() - 1) *= 2.0;
-    cout << "for loop end!" << endl;
+    // cout << "for loop end!" << endl;
 
     /*--------定义多项式轨迹，通过minimum  snap 求解得到光滑的轨迹----------*/
     PolynomialTraj gl_traj;
-    cout << "pos.cols()" << pos.cols() << endl;
+    cout << "way point num: " << pos.cols() << endl;
     /* waypoints>2 */
     if (pos.cols() >= 3)
       gl_traj = PolynomialTraj::minSnapTraj(pos, start_vel, end_vel, start_acc, end_acc, time);
@@ -537,7 +537,7 @@ namespace ego_planner
       return false;
 
 
-    cout << "minSnap completed!" << endl;
+    cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!minSnap completed!" << endl;
     auto time_now = ros::Time::now();
 
     /*--------传入全局轨迹和总时间------------*/

@@ -3,16 +3,16 @@ project(traj_utils)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++14")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -march=native")# !!!!一定记得这里加上-march=native
 
 find_package(catkin REQUIRED COMPONENTS
-  #bspline_opt
-  #path_searching
+  # bspline_opt
+  # path_searching
   roscpp
   std_msgs
   geometry_msgs
   message_generation
-  #cv_bridge
+  # cv_bridge
 )
 
 find_package(Eigen3 REQUIRED)

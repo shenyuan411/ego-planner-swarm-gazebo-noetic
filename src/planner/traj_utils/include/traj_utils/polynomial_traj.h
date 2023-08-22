@@ -2,6 +2,7 @@
 #define _POLYNOMIAL_TRAJ_H
 
 #include <Eigen/Eigen>
+// #include <Eigen/src/Core/util/Memory.h>
 #include <vector>
 
 using std::vector;
@@ -18,7 +19,7 @@ private:
   int num_seg;
 
   /* evaluation */
-  vector<Eigen::Vector3d> traj_vec3d;
+  vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> traj_vec3d;
   double length;
 
 public:
@@ -169,7 +170,7 @@ public:
     return this->time_sum;
   }
 
-  vector<Eigen::Vector3d> getTraj()
+  vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> getTraj()
   {
     double eval_t = 0.0;
     traj_vec3d.clear();

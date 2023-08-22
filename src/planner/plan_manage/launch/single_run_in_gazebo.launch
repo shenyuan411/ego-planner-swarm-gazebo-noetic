@@ -3,8 +3,8 @@
     <arg name="obj_num" value="10" />
     <arg name="drone_id" value="0"/>
 
-    <arg name="map_size_x" value="13.0"/> <!--50-->
-    <arg name="map_size_y" value="10.0"/>
+    <arg name="map_size_x" value="20.0"/> <!--50-->
+    <arg name="map_size_y" value="20.0"/>
     <arg name="map_size_z" value="6.0"/><!--3-->
     <arg name="target_x" default="12"/>
     <arg name="target_y" default="1"/>
@@ -45,7 +45,7 @@
         <arg name="flight_type" value="1" />
         <!-- global waypoints -->
         <!-- It generates a piecewise min-snap traj passing all waypoints -->
-        <arg name="point_num" value="1" />
+        <arg name="point_num" value="4" /><!--????原本值为1-->
         <arg name="point0_x" value="13" />
         <arg name="point0_y" value="0" />
         <arg name="point0_z" value="1.5" />

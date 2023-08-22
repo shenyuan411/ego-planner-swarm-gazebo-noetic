@@ -134,12 +134,12 @@ namespace ego_planner
     std::cout << "odom_vel_ :" << odom_vel_ << std::endl;
     success = planner_manager_->planGlobalTraj(odom_pos_, odom_vel_, Eigen::Vector3d::Zero(), next_wp, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
 
-    cout << "planGlobalTraj success!" << endl;
   /*-------------显示插值点-----------------*/
     visualization_->displayGoalPoint(next_wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
 
     if (success)
     {
+      cout << "planGlobalTraj success!" << endl;
       end_pt_ = next_wp;
 
       /*** display ***/
@@ -159,7 +159,7 @@ namespace ego_planner
       if (exec_state_ == WAIT_TARGET)
         /* [TRIG]: from WAIT_TARGET to GEN_NEW_TRAJ */
         changeFSMExecState(GEN_NEW_TRAJ, "TRIG");
-      /* 当轨迹一直在甩动无法确定轨迹时，rviz重新指点，重新规划 */
+      /* 当轨迹一直在甩动无法确定轨迹时，rviz重新指点，重新规划(下面的部分) */
       else
       {
         while (exec_state_ != EXEC_TRAJ)
@@ -182,7 +182,7 @@ namespace ego_planner
   void EGOReplanFSM::triggerCallback(const geometry_msgs::PoseStampedPtr &msg)
   {
     have_trigger_ = true;
-    cout << "Triggered1!" << endl;
+    cout << "Triggered core codepoint!" << endl;
     init_pt_ = odom_pos_;
   }
 
@@ -191,12 +191,12 @@ namespace ego_planner
     if (msg->pose.position.z < -0.1)
       return;
 
-    cout << "Triggered!" << endl;
+    cout << "Triggered rviz waypoint!" << endl;
     // trigger_ = true;
     init_pt_ = odom_pos_;
     cout << "get init_pt_!" << endl;
     // Eigen::Vector3d end_wp(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
-    Eigen::Vector3d end_wp(msg->pose.position.x+1, msg->pose.position.y+1, 1.0);
+    Eigen::Vector3d end_wp(msg->pose.position.x, msg->pose.position.y, 1.0);
     cout << "end_wp:" << end_wp << endl;
     planNextWaypoint(end_wp);// rviz指点规划
   }

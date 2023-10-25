@@ -65,7 +65,7 @@ namespace ego_planner
   /* flight type 1, rviz指点 */
     if (target_type_ == TARGET_TYPE::MANUAL_TARGET)
     {
-      waypoint_sub_ = nh.subscribe("/move_base_simple/goal", 1, &EGOReplanFSM::waypointCallback, this);
+      waypoint_sub_ = nh.subscribe("/move_base_simple/goal_rviz", 1, &EGOReplanFSM::waypointCallback, this);
     }
 
     /* flight 2,给定waypoints */
@@ -121,6 +121,7 @@ namespace ego_planner
 
     // plan first global waypoint
     wp_id_ = 0;
+    cout << "IN readGivenWps" << endl;
     planNextWaypoint(wps_[wp_id_]);//开始规划
   }
 
